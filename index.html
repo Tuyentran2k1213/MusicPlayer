@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - Music Player - HTML, CSS only</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music player</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<div class="player">
+  <!-- Dashboard -->
+  <div class="dashboard">
+    <!-- Header -->
+    <header>
+      <h4>Now playing:</h4>
+      <h2>Forever love</h2>
+    </header>
+
+    <!-- CD -->
+    <div class="cd">
+      <div class="cd-thumb" style="background-image: url('./image/1.jpg')">
+      </div>
+    </div>
+
+    <!-- Control -->
+    <div class="control">
+      <div class="btn btn-repeat">
+        <i class="fas fa-redo"></i>
+      </div>
+      <div class="btn btn-prev">
+        <i class="fas fa-step-backward"></i>
+      </div>
+      <div class="btn btn-toggle-play">
+        <i class="fas fa-pause icon-pause"></i>
+        <i class="fas fa-play icon-play"></i>
+      </div>
+      <div class="btn btn-next">
+        <i class="fas fa-step-forward"></i>
+      </div>
+      <div class="btn btn-random">
+        <i class="fas fa-random"></i>
+      </div>
+    </div>
+
+    <input id="progress" class="progress" type="range" value="0" step="1" min="0" max="100">
+
+    <audio id="audio" src="./music/ForeverLove-KarikLiLKnightBigDaddyDuongTranNghiaYanbiTAkayzAndreeaDAndree-4248107.mp3"></audio>
+  </div>
+
+  <!-- Playlist -->
+  <div class="playlist">
+    <div class="song">
+      <div class="thumb" style="background-image: url('./image/1.jpg')">
+      </div>
+      <div class="body">
+        <h3 class="title">Forever love</h3>
+        <p class="author">Underground</p>
+      </div>
+      <div class="option">
+        <i class="fas fa-ellipsis-h"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Design from: https://static.collectui.com/shots/3671744/musicloud-revolutionary-app-for-music-streaming-large -->
+
+<!-- 1. render song
+2. scroll-top 
+3. play - pause - seek
+4. CD rotate 
+5. next / prev
+6. Random 
+7. Next / repeat when end 
+8. active song 
+9. scroll active song  into view 
+10. play song when  click  -->
+
+<!-- partial -->
+<script>
+  const $ = document.querySelector.bind(document);
+  const $$ = document.querySelectorAll.bind(document);
+  const head = $('header h2');
+  const image = $('.cd-thumb');
+  const music = $('#audio');
+  const cd = $('.cd');
+  const width = cd.offsetWidth;
+  const player = $('.player');
+  const play = $('.btn-toggle-play');
+  const reload = $('btn-repeat');
+  const nav = $('#progress');
+  const nextbtn = $('.btn-next');
+  const prevbtn = $('.btn-prev');
+  const randomBtn = $('.btn-random');
+  app = {
+    currentIndex: 0,
+    isPlaying: false,
+    isTimeupdate: true,
+    isRandom: false,
+    songs: [
+      {
+        name: 'Forever Love',
+        author: 'Day la rap Viet',
+        path: './music/ForeverLove-KarikLiLKnightBigDaddyDuongTranNghiaYanbiTAkayzAndreeaDAndree-4248107.mp3',
+        image: './image/1.jpg'
+      },
+      {
+        name: 'Back to Hometown',
+        author: 'SOl7-rapviet',
+        path: './music/BackToHometown-Sol7RAPVIET-7119713.mp3',
+        image: './image/2.jpg'
+      },
+      {
+        name: 'Anh Đánh Rơi Người Yêu Này!',
+        author: 'Amee',
+        path: './music/Anh Đánh Rơi Người Yêu Này! (Thật Tuyệt Vời Khi Ở Bên Em OST).mp3',
+        image: './image/Amee.jpg'
+      },
+      {
+        name: '101520 ',
+        author: 'SOl7-prettysix',
+        path: './music/101520 - Sol7_ PrettyXIX.mp3',
+        image: './image/sol7.jpg'
+      },
+      {
+        name: 'Cảm Nhận',
+        author: 'Seachain',
+        path: './music/Cảm Nhận.mp3',
+        image: './image/seachain.png'
+      },
+      {
+        name: 'Chuyện đôi ta',
+        author: 'Emcee L',
+        path: './music/ChuyenDoiTa-EmceeLDaLAB-7120974.mp3',
+        image: './image/emceeL.jpg'
+      },
+      {
+        name: 'có hẹn với thanh xuân',
+        author: 'SOl7-rapviet',
+        path: './music/cohenvoithanhxuan-MONSTAR-7050201.mp3',
+        image: './image/MONSTAR.jpg'
+      },
+      {
+        name: 'Nghe - Nói',
+        author: 'Obito',
+        path: './music/Nghe - Noi - Obito_ Pjpo.m4a',
+        image: './image/obito.jpg'
+      },
+
+    ],
+    render: function() {
+      const html = this.songs.map(song => {
+        return `
+        <div class="song">
+        <div class="thumb" style="background-image: url('${song.image}')">
+        </div>
+        <div class="body">
+        <h3 class="title">${song.name}</h3>
+        <p class="author">${song.author}</p>
+        </div>
+        <div class="option">
+        <i class="fas fa-ellipsis-h"></i>
+        </div>
+        </div>
+        `
+      })
+      $('.playlist').innerHTML = html.join(" ");
+    },
+    // define currentIndex property 
+    defineProperties: function(){
+        Object.defineProperty(this, 'currentSong', {
+          get: function() {
+            return this.songs[this.currentIndex];
+          }
+        })
+    },
+    //loading a song
+    loadSong: function(){
+      head.innerText = this.songs[this.currentIndex].name;
+      image.style.backgroundImage = `url(${this.songs[this.currentIndex].image})`;
+      music.src = this.songs[this.currentIndex].path;
+    },
+
+    //nextsong function
+    nextSong: function(){
+      this.currentIndex++;
+      if(this.currentIndex >= this.songs.length) this.currentIndex = 0;
+      app.loadSong();
+    },
+
+    //prevSong function
+    prevSong: function(){
+      this.currentIndex--;
+      if(this.currentIndex < 0) this.currentIndex = this.songs.length - 1;
+      app.loadSong();
+    },
+    // randomSOng function
+    randomSong: function() {
+      let newRandom = this.songs.length + 1;
+      do{
+        newRandom = Math.floor(Math.random() * (newRandom));
+     } while(newRandom === this.currentIndex);
+        this.currentIndex = newRandom;
+        this.loadSong();
+    },
+    // handling  all the events on screen 
+    handle: function(){
+      // handling scroll animation
+      document.onscroll = function() {
+        var scrolltop = window.scrollY || document.documentElement.scrollTop;
+        var newWidth = width - scrolltop > 0 ? width - scrolltop : 0;
+        var newOpa = 1  - scrolltop / width > 0 ? 1 - scrolltop / width : 0;
+        cd.style.width = newWidth + 'px';
+        cd.style.opacity = newOpa;
+      }
+
+    // animation rotate
+    const rotate_background = image.animate([
+      { transform: 'rotate(360deg)'},], 
+      {
+        duration: 10000,
+        iterations: Infinity
+      });
+      rotate_background.pause();
+
+    // handling play and pause icon
+      play.onclick = function() {
+        if(app.isPlaying){
+          music.pause();
+        } else {
+          music.play();
+        }
+      }
+
+    // when the music is playing
+      music.onplay = function() {
+        app.isPlaying = true;
+        player.classList.add('playing');
+        rotate_background.play();
+      }
+
+    // when the music is pause
+      music.onpause = function() {
+        app.isPlaying = false;
+        player.classList.remove('playing');
+        rotate_background.pause();
+      }
+      
+    // handle audio manipulation
+      music.ontimeupdate = function() {
+        if(this.duration && app.isTimeupdate){
+          const progress = Math.floor((this.currentTime / this.duration) * 100);
+          nav.value = progress;
+        }
+      }
+        
+    // fix bug for more smoothy using progress
+        nav.oninput = function() {
+          app.isTimeupdate = false;
+        }
+        nav.onmouseup = function() {
+          app.isTimeupdate = true;
+        }
+        nav.ontouchend = function() {
+          app.isTimeupdate = true;
+        }
+      
+      // mainypulation when pass the songs
+      nav.onchange = function(e) {
+        const seekTime = Math.floor((e.target.value * music.duration) / 100);
+        music.currentTime = seekTime;
+      }
+
+      //click to change the next song
+      nextbtn.onmousedown = function() {
+        nextbtn.classList.add('active');
+      }
+      nextbtn.onmouseup = function() {
+        nextbtn.classList.remove('active');
+      }
+      nextbtn.ontouchstart = function() {
+        nextbtn.classList.add('active');
+      }
+      nextbtn.ontouchend = function() {
+        nextbtn.classList.remove('active');
+      }
+      nextbtn.onclick = function() {
+        if(app.isRandom){
+          app.randomSong();
+      } else {
+        app.nextSong();
+      }
+        music.play();
+      }
+
+      //click to change the previous song
+      prevbtn.onmousedown = function() {
+        prevbtn.classList.add('active');
+      }
+      prevbtn.onmouseup = function() {
+        prevbtn.classList.remove('active');
+      }
+      prevbtn.ontouchstart = function() {
+        prevbtn.classList.add('active');
+      }
+      prevbtn.ontouchend = function() {
+        prevbtn.classList.remove('active');
+      }
+      prevbtn.onclick = function() {
+        if(app.isRandom){
+          app.randomSong();
+        } else {
+          app.prevSong();
+        }
+        music.play();
+      }
+
+      //click random button
+      randomBtn.onclick = function() {
+        app.isRandom = !app.isRandom;
+        randomBtn.classList.toggle("active", app.isRandom);
+      }
+    },
+    start: function() {
+      // load the current Song
+      this.loadSong()
+
+      // geter currentSong
+      this.defineProperties();
+
+      // render songs
+      this.render();
+
+      // handling events
+      this.handle();
+    }
+  }
+  app.start()
+</script>
+  
+</body>
+</html>
