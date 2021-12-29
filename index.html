@@ -206,7 +206,7 @@
       let newRandom = this.songs.length + 1;
       do{
         newRandom = Math.floor(Math.random() * (newRandom));
-     } while(newRandom === this.currentIndex);
+     } while(newRandom == this.currentIndex);
         this.currentIndex = newRandom;
         this.loadSong();
     },
