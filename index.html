@@ -2,7 +2,7 @@
 <html lang="en" >
 <head>
   <meta charset="UTF-8">
-  <title>CodePen - Music Player - HTML, CSS only</title>
+  <title>Music player</title>
   <link rel="stylesheet" href="./style.css">
 
 </head>
@@ -85,8 +85,13 @@
 
 <!-- partial -->
 <script>
+  var scrolltop;
+  var newWidth;
+  var newOpa;
   const $ = document.querySelector.bind(document);
   const $$ = document.querySelectorAll.bind(document);
+
+  const PLAYER_INTHE_MUSIC_KEY = 'MUSIC_PLAYER';
   const head = $('header h2');
   const image = $('.cd-thumb');
   const music = $('#audio');
@@ -99,11 +104,20 @@
   const nextbtn = $('.btn-next');
   const prevbtn = $('.btn-prev');
   const randomBtn = $('.btn-random');
+  const repeatBtn = $('.btn-repeat');
+  const playList = $('.playlist');
+  
   app = {
     currentIndex: 0,
     isPlaying: false,
     isTimeupdate: true,
     isRandom: false,
+    isRepeat: false,
+    config: JSON.parse(localStorage.getItem(PLAYER_INTHE_MUSIC_KEY)) || {},
+    setconfig: function(key,value){
+      this.config[key] = value;
+      localStorage.setItem(PLAYER_INTHE_MUSIC_KEY, JSON.stringify(this.config));
+    },
     songs: [
       {
         name: 'Forever Love',
@@ -156,9 +170,9 @@
 
     ],
     render: function() {
-      const html = this.songs.map(song => {
+      const html = this.songs.map((song, index) => {
         return `
-        <div class="song">
+        <div class="song ${index === this.currentIndex ? 'active' : ''}" data-index = "${index}">
         <div class="thumb" style="background-image: url('${song.image}')">
         </div>
         <div class="body">
@@ -166,12 +180,12 @@
         <p class="author">${song.author}</p>
         </div>
         <div class="option">
-        <i class="fas fa-ellipsis-h"></i>
+        <i class="fas fa-ellipsis-h"></i> 
         </div>
         </div>
         `
       })
-      $('.playlist').innerHTML = html.join(" ");
+      playList.innerHTML = html.join(" ");
     },
     // define currentIndex property 
     defineProperties: function(){
@@ -181,11 +195,32 @@
           }
         })
     },
+    scrollActive: function() {
+      setTimeout($('.song.active').scrollIntoView(
+                {
+                  behavior: "smooth",
+                  block: "end",
+                }
+      ),1000)
+    },
+    // load config
+    loadConfig: function(){
+      this.isRandom = this.config.isRandom;
+      this.isRepeat = this.config.isRepeat;
+      repeatBtn.classList.toggle('active', app.isRepeat);
+      randomBtn.classList.toggle("active", app.isRandom);
+    },
     //loading a song
     loadSong: function(){
       head.innerText = this.songs[this.currentIndex].name;
       image.style.backgroundImage = `url(${this.songs[this.currentIndex].image})`;
       music.src = this.songs[this.currentIndex].path;
+      this.render();
+      this.scrollActive();
+      // if(this.currentIndex === 0){
+      //   cd.style.width = width + 'px';
+      //   cd.style.opacity = 1;
+      // }
     },
 
     //nextsong function
@@ -214,9 +249,9 @@
     handle: function(){
       // handling scroll animation
       document.onscroll = function() {
-        var scrolltop = window.scrollY || document.documentElement.scrollTop;
-        var newWidth = width - scrolltop > 0 ? width - scrolltop : 0;
-        var newOpa = 1  - scrolltop / width > 0 ? 1 - scrolltop / width : 0;
+        scrolltop = window.scrollY || document.documentElement.scrollTop;
+        newWidth = width - scrolltop > 0 ? width - scrolltop : 0;
+        newOpa = 1  - scrolltop / width > 0 ? 1 - scrolltop / width : 0;
         cd.style.width = newWidth + 'px';
         cd.style.opacity = newOpa;
       }
@@ -272,7 +307,7 @@
           app.isTimeupdate = true;
         }
       
-      // mainypulation when pass the songs
+      // mainypulation when past the songs
       nav.onchange = function(e) {
         const seekTime = Math.floor((e.target.value * music.duration) / 100);
         music.currentTime = seekTime;
@@ -321,14 +356,57 @@
         }
         music.play();
       }
+      // handling when the song is end 
+      music.onended = function() {
+        if(app.isRepeat){
+          music.play();
+        } else if(app.isRandom){
+          app.randomSong();
+          music.play();
+        } else {
+          app.nextSong();
+          music.play();
+        }
+      }
 
       //click random button
       randomBtn.onclick = function() {
         app.isRandom = !app.isRandom;
+        app.setconfig('isRandom', app.isRandom);
         randomBtn.classList.toggle("active", app.isRandom);
+      }
+
+      //click repeat button
+      repeatBtn.onclick = function() {
+        app.isRepeat = !app.isRepeat;
+        app.setconfig('isRepeat', app.isRepeat);
+        repeatBtn.classList.toggle('active', app.isRepeat);
+      }
+
+      // clist all the Element in the playlist
+      playList.onclick = function(e) {
+        const songNode = e.target.closest('.song:not(.active)');
+        if(songNode || e.target.closest('.option')){
+          // when click on the song 
+          if(songNode){
+            app.currentIndex = Number(songNode.dataset.index);
+            app.loadSong();
+            if(app.isPlaying){
+              music.play();
+            }
+          }
+
+          // when click on the option button
+          if(e.target.closest('.option')){
+
+          }
+        }
       }
     },
     start: function() {
+      //load config into app
+      this.loadConfig();
+
       // load the current Song
       this.loadSong()
 
@@ -340,6 +418,8 @@
 
       // handling events
       this.handle();
+
+      
     }
   }
   app.start()
